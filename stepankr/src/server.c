@@ -42,6 +42,7 @@
 char server_ip[16];
 char *ip;
 
+void print_clients(fd_set master_list, int head_socket);
 void get_ip();
 
 
@@ -153,7 +154,9 @@ int start_server(int argc, char **argv)
 						if(strcmp(cmd, "AUTHOR\n") == 0){
 							cse4589_print_and_log("I, stepankr, have read and understood the course academic integrity policy.\n");
 						}
-						
+						if(strcmp(cmd, "LIST\n") == 0){
+							print_clients(master_list, head_socket);
+						}
 
 						
 						
@@ -164,17 +167,22 @@ int start_server(int argc, char **argv)
 					}
 					/* Check if new client is requesting connection */
 					else if(sock_index == server_socket){
+						
 						caddr_len = sizeof(client_addr);
 						fdaccept = accept(server_socket, (struct sockaddr *)&client_addr, &caddr_len);
 						if(fdaccept < 0)
 							perror("Accept failed.");
 						
 						
-						printf("\nRemote Host connected!\n"); 
-						inet_ntop(AF_INET, &(client_addr.sin_addr), ip, sizeof(fdaccept));
-						printf(ip);
 
-						
+						printf("\nRemote Host connected!\n"); 
+						/*connected clients ip and port*/
+						char client_ip[INET_ADDRSTRLEN];
+						int client_port;
+						inet_ntop(AF_INET, &(client_addr.sin_addr), client_ip, INET_ADDRSTRLEN);
+						client_port = ntohs(client_addr.sin_port);
+
+						printf("\nRemote Host connected from %s:%d!\n", client_ip, client_port);
 						
 						
 						/* Add to watched socket list */
@@ -213,6 +221,38 @@ int start_server(int argc, char **argv)
 	
 	return 0;
 }
+void print_clients(fd_set master_list, int head_socket) {
+    int list_id = 1;
+    printf("%-5s%-35s%-20s%-8s\n", "ID", "Hostname", "IP Address", "Port");
+
+    for (int i = 0; i <= head_socket; i++) {
+        if (FD_ISSET(i, &master_list)) {
+            struct sockaddr_in client_addr;
+            socklen_t client_len = sizeof(client_addr);
+            char client_ip[INET_ADDRSTRLEN];
+            int client_port;
+
+            if (getpeername(i, (struct sockaddr*)&client_addr, &client_len) == -1) {
+                continue;
+            }
+
+            inet_ntop(AF_INET, &(client_addr.sin_addr), client_ip, INET_ADDRSTRLEN);
+            client_port = ntohs(client_addr.sin_port);
+
+            struct hostent *host_entry = gethostbyaddr(&(client_addr.sin_addr), sizeof(struct in_addr), AF_INET);
+            char *hostname;
+            if (host_entry == NULL) {
+                hostname = "unknown";
+            } else {
+                hostname = host_entry->h_name;
+            }
+
+            printf("%-5d%-35s%-20s%-8d\n", list_id, hostname, client_ip, client_port);
+            list_id++;
+        }
+    }
+}
+
 void get_ip(){
 	int fdsocket;
 	struct addrinfo hints, *res;
@@ -240,5 +280,4 @@ void get_ip(){
 	close(fdsocket);
 
 }
-
 

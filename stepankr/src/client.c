@@ -138,9 +138,10 @@ int connect_to_host(char *server_ip, char* server_port)
 	memset(&hints, 0, sizeof(hints));
 	hints.ai_family = AF_INET;
 	hints.ai_socktype = SOCK_STREAM;
+	hints.ai_flags = AI_PASSIVE; 
 
 	/* Fill up address structures */	
-	if (getaddrinfo(server_ip, server_port, &hints, &res) != 0)
+	if (getaddrinfo(server_ip, "6666", &hints, &res) != 0)
 		perror("getaddrinfo failed");
 
 	/* Socket */
@@ -148,6 +149,8 @@ int connect_to_host(char *server_ip, char* server_port)
 	if(fdsocket < 0)
 		perror("Failed to create socket");
 	
+	bind(fdsocket, res->ai_addr, res->ai_addrlen);
+	getaddrinfo(server_ip, server_port, &hints, &res);
 	/* Connect */
 	if(connect(fdsocket, res->ai_addr, res->ai_addrlen) < 0)
 		perror("Connect failed");
