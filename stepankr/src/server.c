@@ -41,8 +41,10 @@
 
 char server_ip[16];
 char *ip;
+struct client clients[100];
+int num_clients = 0;
 
-void print_clients(fd_set master_list, int head_socket);
+void print_clients();
 void get_ip();
 
 
@@ -155,7 +157,7 @@ int start_server(int argc, char **argv)
 							cse4589_print_and_log("I, stepankr, have read and understood the course academic integrity policy.\n");
 						}
 						if(strcmp(cmd, "LIST\n") == 0){
-							print_clients(master_list, head_socket);
+							print_clients();
 						}
 
 						
@@ -183,11 +185,32 @@ int start_server(int argc, char **argv)
 						client_port = ntohs(client_addr.sin_port);
 
 						printf("\nRemote Host connected from %s:%d!\n", client_ip, client_port);
-						
+						struct hostent *host_entry = gethostbyaddr(&(client_addr.sin_addr), sizeof(struct in_addr), AF_INET);
+						char *hostname;
+						if (host_entry == NULL) {
+    					hostname = "unknown";
+						} 						
+						else {
+   						 hostname = host_entry->h_name;
+							}
+						num_clients = num_clients + 1;
 						
 						/* Add to watched socket list */
 						FD_SET(fdaccept, &master_list);
 						if(fdaccept > head_socket) head_socket = fdaccept;
+
+						struct client new_client;
+						strcpy(new_client.ip, client_ip);
+						strcpy(new_client.name, hostname);
+						new_client.port = client_port;
+            
+						clients[num_clients] = new_client;
+						
+						send(fdaccept, clients, sizeof(clients), 0);
+  
+
+
+					
 					}
 					/* Read from existing clients */
 					else{
@@ -204,12 +227,26 @@ int start_server(int argc, char **argv)
 						}
 						else {
 							//Process incoming data from existing clients here ...
+							if(strcmp(buffer, "EXIT\n")==0){
+								close(sock_index);
+								char ip[INET_ADDRSTRLEN];
+								int client_port;
+								inet_ntop(AF_INET, &(client_addr.sin_addr), ip, INET_ADDRSTRLEN);
+								remove_client_by_ip(ip);
+								FD_CLR(sock_index, &master_list);
+							}
+							if(strcmp(buffer, "REFRESH\n") == 0){
+							send(sock_index, clients, sizeof(clients), 0);
+							}
 							
 							printf("\nClient sent me: %s\n", buffer);
 							printf("ECHOing it back to the remote host ... ");
-							if(send(fdaccept, buffer, strlen(buffer), 0) == strlen(buffer))
+							if(send(sock_index, buffer, strlen(buffer), 0) == strlen(buffer))
 								printf("Done!\n");
+								
+									
 							fflush(stdout);
+								
 						}
 						
 						free(buffer);
@@ -221,33 +258,13 @@ int start_server(int argc, char **argv)
 	
 	return 0;
 }
-void print_clients(fd_set master_list, int head_socket) {
+void print_clients() {
+	printf("%-5s%-35s%-20s%-8s\n", "ID", "Hostname", "IP Address", "Port");
+
     int list_id = 1;
-    printf("%-5s%-35s%-20s%-8s\n", "ID", "Hostname", "IP Address", "Port");
-
-    for (int i = 0; i <= head_socket; i++) {
-        if (FD_ISSET(i, &master_list)) {
-            struct sockaddr_in client_addr;
-            socklen_t client_len = sizeof(client_addr);
-            char client_ip[INET_ADDRSTRLEN];
-            int client_port;
-
-            if (getpeername(i, (struct sockaddr*)&client_addr, &client_len) == -1) {
-                continue;
-            }
-
-            inet_ntop(AF_INET, &(client_addr.sin_addr), client_ip, INET_ADDRSTRLEN);
-            client_port = ntohs(client_addr.sin_port);
-
-            struct hostent *host_entry = gethostbyaddr(&(client_addr.sin_addr), sizeof(struct in_addr), AF_INET);
-            char *hostname;
-            if (host_entry == NULL) {
-                hostname = "unknown";
-            } else {
-                hostname = host_entry->h_name;
-            }
-
-            printf("%-5d%-35s%-20s%-8d\n", list_id, hostname, client_ip, client_port);
+    for (int i = 1; i <= 50; i++) {
+        if (strlen(clients[i].name) > 0) {
+            printf("%-5d%-35s%-20s%-8d\n", list_id, clients[i].name, clients[i].ip, clients[i].port);
             list_id++;
         }
     }
@@ -279,5 +296,14 @@ void get_ip(){
 	freeaddrinfo(res);
 	close(fdsocket);
 
+}
+void remove_client_by_ip(char* ip) {
+    for (int i = 0; i < 100; i++) {
+        if (strcmp(clients[i].ip, ip) == 0) {
+            printf("Removing client %s\n", clients[i].name);
+            clients[i] = (struct client){0};
+            return;
+        }
+    }
 }
 

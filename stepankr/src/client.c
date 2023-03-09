@@ -14,7 +14,7 @@
 * WITHOUT ANY WARRANTY; without even the implied warranty of
 * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
 * General Public License for more details at
-* http://www.gnu.org/copyleft/gpl.html
+* http://www.gnu.org/copyleft/gpl.hml
 *
 * @section DESCRIPTION
 *
@@ -39,6 +39,8 @@ int listening_port;
 char client_ip[16];
 int connected = 0;
 void get_ip_client();
+void print_clients2();
+struct client clients[100];
 
 int connect_to_host(char *server_ip, char *server_port);
 
@@ -51,6 +53,7 @@ int connect_to_host(char *server_ip, char *server_port);
 */
 int start_client(int argc, char **argv)
 {
+
 	if(argc != 2) {
 		printf("Usage:%s [port]\n", argv[0]);
 		exit(-1);
@@ -67,7 +70,9 @@ int start_client(int argc, char **argv)
 			exit(-1);
 		if(strcmp(msg, "AUTHOR\n") == 0){
 			msg = "AUTHOR";
+			cse4589_print_and_log("[%s:SUCCESS]\n", msg);
 			cse4589_print_and_log("I, stepankr, have read and understood the course academic integrity policy.\n");
+			cse4589_print_and_log("[%s:END]\n", msg);
 		}
 		if (strcmp(msg, "IP\n") == 0) {
 			msg = "IP";
@@ -75,6 +80,9 @@ int start_client(int argc, char **argv)
 			cse4589_print_and_log("IP:%s\n", client_ip);
 			cse4589_print_and_log("[%s:END]\n", msg);
 			
+		}
+		if (strcmp(msg, "LIST\n") == 0) {
+			print_clients2();
 		}
 		if (strcmp(msg, "EXIT\n") == 0) {
 			msg = "EXIT";
@@ -96,11 +104,23 @@ int start_client(int argc, char **argv)
 			ip = strtok(NULL, " ");
         	port = strtok(NULL, " ");
 			port[strcspn(port, "\n")] = '\0';
-			break;
+			if(strlen(ip) == 13){
+				break;
+			}
+			else{
+				
+				cse4589_print_and_log("[%s:ERROR]\n", msg);
+				cse4589_print_and_log("[%s:END]\n", msg);
+				perror("error check ip or port number");
+			}
+			
 		}
 	}
 	int server;
+
 	server = connect_to_host(ip, port);
+	memset(clients, 0, sizeof(clients));
+	recv(server, clients, sizeof(clients), 0);
 	
 	while(TRUE){
 		printf("\n[PA1-Client@CSE489/589]$ ");
@@ -111,21 +131,55 @@ int start_client(int argc, char **argv)
 		if(fgets(msg, MSG_SIZE-1, stdin) == NULL) //Mind the newline character that will be written to msg
 			exit(-1);
 		
+		
+		
 		printf("I got: %s(size:%d chars)", msg, strlen(msg));
 		
 		printf("\nSENDing it to the remote server ... ");
 		if(send(server, msg, strlen(msg), 0) == strlen(msg))
 			printf("Done!\n");
-		fflush(stdout);
-		
-		/* Initialize buffer to receieve response */
-		char *buffer = (char*) malloc(sizeof(char)*BUFFER_SIZE);
-		memset(buffer, '\0', BUFFER_SIZE);
-		
-		if(recv(server, buffer, BUFFER_SIZE, 0) >= 0){
-			printf("Server responded: %s", buffer);
+			if(strcmp(msg, "REFRESH\n") == 0){
+				memset(clients, 0, sizeof(clients));
+				recv(server, clients, sizeof(clients), 0);
+				printf("server sent updated clients");
+				
+			}
+			else if(strcmp(msg, "LIST\n") == 0){
+				print_clients2();
+			}
+			else if(strcmp(msg, "EXIT\n") == 0){
+				return 0;
+			}
+			else if(strcmp(msg, "AUTHOR\n") == 0){
+				msg = "AUTHOR";
+				cse4589_print_and_log("I, stepankr, have read and understood the course academic integrity policy.\n");
+			}
+			else if (strcmp(msg, "IP\n") == 0) {
+				msg = "IP";
+				cse4589_print_and_log("[%s:SUCCESS]\n", msg);
+				cse4589_print_and_log("IP:%s\n", client_ip);
+				cse4589_print_and_log("[%s:END]\n", msg);
+			
+			}
+			else if (strcmp(msg, "PORT\n") == 0) {
+				int port = atoi(argv[1]);
+				msg = "PORT";
+				cse4589_print_and_log("[%s:SUCCESS]\n", msg);
+				cse4589_print_and_log("PORT:%d\n", port);
+				cse4589_print_and_log("[%s:END]\n", msg);
+			}
+			
+			/* Initialize buffer to receieve response */
+			char *buffer = (char*) malloc(sizeof(char)*BUFFER_SIZE);
+			memset(buffer, '\0', BUFFER_SIZE);
+			if(recv(server, buffer, BUFFER_SIZE, 0) >= 0){
+			//printf("Server responded: %s", buffer);
 			fflush(stdout);
-		}
+			}
+			
+			
+		
+
 	}
 }
 
@@ -185,4 +239,15 @@ void get_ip_client(){
 	freeaddrinfo(res);
 	close(fdsocket);
 
+}
+void print_clients2() {
+	printf("%-5s%-35s%-20s%-8s\n", "ID", "Hostname", "IP Address", "Port");
+
+    int list_id = 1;
+    for (int i = 1; i <= 50; i++) {
+        if (strlen(clients[i].name) > 0) {
+            cse4589_print_and_log("%-5d%-35s%-20s%-8d\n", list_id, clients[i].name, clients[i].ip, clients[i].port);
+            list_id++;
+        }
+    }
 }
