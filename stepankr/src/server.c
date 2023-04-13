@@ -31,6 +31,7 @@
 #include <sys/types.h>
 #include <netdb.h>
 #include "../include/server.h"
+#include "../include/global.h"
 #include <arpa/inet.h>
 
 #define BACKLOG 5
@@ -43,7 +44,7 @@ char server_ip[16];
 char *ip;
 struct client clients[100];
 int num_clients = 0;
-
+void sort_clients_by_port();
 void print_clients();
 void get_ip();
 
@@ -55,11 +56,23 @@ void get_ip();
 * @param  argv The argument list
 * @return 0 EXIT_SUCCESS
 */
+int cmpfunc(const void *a, const void *b) { /*for sorting*/
+    struct client *clientA = (struct client *)a;
+    struct client *clientB = (struct client *)b;
+
+    if (clientA->port < clientB->port) {
+        return -1;
+    } else if (clientA->port > clientB->port) {
+        return 1;
+    } else {
+        return 0;
+    }
+}
 int start_server(int argc, char **argv)
 {
 	if(argc != 2) {
 		printf("Usage:%s [port]\n", argv[0]);
-		exit(-1);
+		return -1;
 	}
 	
 	int server_socket, head_socket, selret, sock_index, fdaccept=0, caddr_len;
@@ -131,7 +144,7 @@ int start_server(int argc, char **argv)
 						
 						memset(cmd, '\0', CMD_SIZE);
 						if(fgets(cmd, CMD_SIZE-1, stdin) == NULL) //Mind the newline character that will be written to cmd
-							exit(-1);
+							return -1;
 						
 						
 						if(strcmp(cmd, "IP\n") == 0){
@@ -142,8 +155,6 @@ int start_server(int argc, char **argv)
 						}
 						if(strcmp(cmd, "EXIT\n") == 0){
 							char *command = "EXIT";
-							cse4589_print_and_log("[%s:SUCCESS]\n", command);
-							cse4589_print_and_log("[%s:END]\n", command);
 							return 0;
 						}
 						if(strcmp(cmd, "PORT\n") == 0){
@@ -154,10 +165,17 @@ int start_server(int argc, char **argv)
 							cse4589_print_and_log("[%s:END]\n", command);
 						}
 						if(strcmp(cmd, "AUTHOR\n") == 0){
+							char *command = "AUTHOR";
+							cse4589_print_and_log("[%s:SUCCESS]\n", command);
 							cse4589_print_and_log("I, stepankr, have read and understood the course academic integrity policy.\n");
+							cse4589_print_and_log("[%s:END]\n", command);
 						}
 						if(strcmp(cmd, "LIST\n") == 0){
+							char *command = "LIST";
+							sort_clients_by_port();
+							cse4589_print_and_log("[%s:SUCCESS]\n", command);
 							print_clients();
+							cse4589_print_and_log("[%s:END]\n", command);
 						}
 
 						
@@ -198,14 +216,17 @@ int start_server(int argc, char **argv)
 						/* Add to watched socket list */
 						FD_SET(fdaccept, &master_list);
 						if(fdaccept > head_socket) head_socket = fdaccept;
-
+						int client_listeningPort;
+						/*receiving listening port from newly connected client*/
+						recv(fdaccept, &client_listeningPort, sizeof(client_listeningPort), 0);
+						
 						struct client new_client;
 						strcpy(new_client.ip, client_ip);
 						strcpy(new_client.name, hostname);
-						new_client.port = client_port;
+						new_client.port = client_listeningPort;
             
 						clients[num_clients] = new_client;
-						
+						sort_clients_by_port();
 						send(fdaccept, clients, sizeof(clients), 0);
   
 
@@ -228,17 +249,23 @@ int start_server(int argc, char **argv)
 						else {
 							//Process incoming data from existing clients here ...
 							if(strcmp(buffer, "EXIT\n")==0){
-								close(sock_index);
-								char ip[INET_ADDRSTRLEN];
+								
 								int client_port;
+								char ip[INET_ADDRSTRLEN];
+								recv(sock_index, &client_port, sizeof(client_port), 0);
 								inet_ntop(AF_INET, &(client_addr.sin_addr), ip, INET_ADDRSTRLEN);
-								remove_client_by_ip(ip);
+								remove_client(ip, client_port);
 								FD_CLR(sock_index, &master_list);
+								FD_CLR(sock_index, &watch_list);
+								close(sock_index);
+							
+								
 							}
 							if(strcmp(buffer, "REFRESH\n") == 0){
+							sort_clients_by_port();
 							send(sock_index, clients, sizeof(clients), 0);
 							}
-							
+							if(strcmp(buffer, "EXIT\n")!= 0){
 							printf("\nClient sent me: %s\n", buffer);
 							printf("ECHOing it back to the remote host ... ");
 							if(send(sock_index, buffer, strlen(buffer), 0) == strlen(buffer))
@@ -246,7 +273,7 @@ int start_server(int argc, char **argv)
 								
 									
 							fflush(stdout);
-								
+							}
 						}
 						
 						free(buffer);
@@ -259,12 +286,11 @@ int start_server(int argc, char **argv)
 	return 0;
 }
 void print_clients() {
-	printf("%-5s%-35s%-20s%-8s\n", "ID", "Hostname", "IP Address", "Port");
-
+	sort_clients_by_port();
     int list_id = 1;
-    for (int i = 1; i <= 50; i++) {
+    for (int i = 1; i <= 100; i++) {
         if (strlen(clients[i].name) > 0) {
-            printf("%-5d%-35s%-20s%-8d\n", list_id, clients[i].name, clients[i].ip, clients[i].port);
+            cse4589_print_and_log("%-5d%-35s%-20s%-8d\n", list_id, clients[i].name, clients[i].ip, clients[i].port);
             list_id++;
         }
     }
@@ -297,12 +323,23 @@ void get_ip(){
 	close(fdsocket);
 
 }
-void remove_client_by_ip(char* ip) {
-    for (int i = 0; i < 100; i++) {
-        if (strcmp(clients[i].ip, ip) == 0) {
+void remove_client(char* ip, int port) {
+    for (int i = 1; i <= num_clients; i++) {
+        if (strcmp(clients[i].ip, ip) == 0 && port == clients[i].port) {
             printf("Removing client %s\n", clients[i].name);
             clients[i] = (struct client){0};
             return;
+        }
+    }
+}
+void sort_clients_by_port() {
+    for (int i = 1; i <= num_clients; i++) {
+        for (int j = 1; j <= num_clients - i; j++) {
+            if (clients[j].port > clients[j+1].port) {
+                struct client temp = clients[j];
+                clients[j] = clients[j+1];
+                clients[j+1] = temp;
+            }
         }
     }
 }

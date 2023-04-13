@@ -45,19 +45,35 @@ int main(int argc, char **argv)
 
 
 	/*Start Here*/
-	
-	
-	
+	if(argc != 3){
+		exit(-1);
+	}
+	int status;
+
     if (strcmp(argv[1], "s") == 0) {
-		start_server(argc - 1, argv + 1);
+		status = start_server(argc - 1, argv + 1);
     }
 	if (strcmp(argv[1], "c") == 0) {
-		start_client(argc - 1, argv + 1);
+		status = start_client(argc - 1, argv + 1);
     }
+	if (strcmp(argv[1], "c") != 0 || strcmp(argv[1], "s")) {
+		exit(-1);
+    }
+	if(status == 0){
+		cse4589_print_and_log("[EXIT:SUCCESS]\n");
+		cse4589_print_and_log("[EXIT:END]\n");
+		exit(0);
+	}
+	if(status == -1){
+		cse4589_print_and_log("[EXIT:ERROR]\n");
+		cse4589_print_and_log("[EXIT:END]\n");
+		exit(-1);
+	}
 
 	
 	
-
-	return 0;
+	cse4589_print_and_log("[EXIT:SUCCESS]\n");
+	cse4589_print_and_log("[EXIT:END]\n");
+	exit(0);
 }
 
