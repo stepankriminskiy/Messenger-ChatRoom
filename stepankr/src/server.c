@@ -238,8 +238,10 @@ int start_server(int argc, char **argv)
 							new_client.fdsocket = fdaccept;
 							new_client.loggedIn = 1;
 							new_client.messagesSent = 0;
+							new_client.numBlocked = 0;
 							new_client.messagesReceived = 0;
-							printf("do we get here?");
+							new_client.bufferedAmt = 0;
+		
 							clients[num_clients] = new_client;
 							sort_clients_by_port();
 						}
@@ -271,6 +273,7 @@ int start_server(int argc, char **argv)
 							//Process incoming data from existing clients here ...
 							printf("client sent me:%s\n", buffer);
 							if(strncmp(buffer, "SEND", 4)==0){
+								
 								int totalsize = 0;
 								char *token;
 

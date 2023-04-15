@@ -192,8 +192,9 @@ void connectedServer(char *ip, char *port, char **argv){
         	if(fgets(msg, MSG_SIZE-1, stdin) == NULL) //Mind the newline character that will be written to msg
 				{return -1;}
 
-			send(server, msg, strlen(msg), 0);
+			
 			if(strcmp(msg, "LOGOUT\n") == 0){
+				send(server, msg, strlen(msg), 0);
 				msg = "LOGOUT";
 				cse4589_print_and_log("[%s:SUCCESS]\n", msg);
 				send(server, &listening_port, sizeof(listening_port), 0);
@@ -201,6 +202,7 @@ void connectedServer(char *ip, char *port, char **argv){
 				startup(argv);
 			}
 			if(strcmp(msg, "REFRESH\n") == 0){
+				send(server, msg, strlen(msg), 0);
 				msg = "REFRESH";
 				cse4589_print_and_log("[%s:SUCCESS]\n", msg);
 				memset(clients, 0, sizeof(clients));
@@ -208,19 +210,54 @@ void connectedServer(char *ip, char *port, char **argv){
 				cse4589_print_and_log("[%s:END]\n", msg);
 			}
 			else if(strncmp(msg, "BROADCAST", 9) == 0){
+				send(server, msg, strlen(msg), 0);
 				char *command = "BROADCAST";
 				cse4589_print_and_log("[%s:SUCCESS]\n", command);
 				send(server, &listening_port, sizeof(listening_port), 0);
 				cse4589_print_and_log("[%s:END]\n", command);
 			}
 			else if(strncmp(msg, "SEND", 4) == 0){
+				int foundIp = 0;
+				char *copy = (char*) malloc(sizeof(char)*MSG_SIZE);
+				memset(copy, '\0', MSG_SIZE);
+				strcpy(copy, msg);
 				char *command = "SEND";
-				cse4589_print_and_log("[%s:SUCCESS]\n", command);
-				send(server, &listening_port, sizeof(listening_port), 0);
-				cse4589_print_and_log("[%s:END]\n", command);
+				char *token;
+				token = strtok(msg, " ");
+				//the ip
+				token = strtok(NULL, " ");
+				struct in_addr addr;
+    			int result = inet_pton(AF_INET, token, &addr);
+				//if the address is valid
+				if(result == 0){
+					cse4589_print_and_log("[%s:ERROR]\n", command);
+					printf("The ip address is invalid\n ");
+					cse4589_print_and_log("[%s:END]\n", command);
+				}
+				if(result == 1){
+					for (int i = 1; i <= 50; i++) {
+						//checks if ip is in local list before sending it
+        				if (strlen(clients[i].name) > 1 && strncmp(clients[i].ip, token, 13) == 0 && foundIp == 0){
+							send(server, copy, strlen(copy), 0);
+							cse4589_print_and_log("[%s:SUCCESS]\n", command);
+							send(server, &listening_port, sizeof(listening_port), 0);
+							cse4589_print_and_log("[%s:END]\n", command);
+							foundIp = 1;
+						}
+					}
+					//if ip was not found in list
+					if(foundIp == 0){
+						cse4589_print_and_log("[%s:ERROR]\n", command);
+						printf("Ip not found in local List, call Refresh to update list\n");
+						cse4589_print_and_log("[%s:END]\n", command);
+					}
+				}
+
+
 			}
 
 			else if(strcmp(msg, "LIST\n") == 0){
+				send(server, msg, strlen(msg), 0);
 				char *command = "LIST";
 				cse4589_print_and_log("[%s:SUCCESS]\n", command);
 				print_clients2();
@@ -228,6 +265,7 @@ void connectedServer(char *ip, char *port, char **argv){
 				
 			}
 			else if(strcmp(msg, "EXIT\n") == 0){
+				send(server, msg, strlen(msg), 0);
 				msg = "EXIT";
 				
 				send(server, &listening_port, sizeof(listening_port), 0);
@@ -237,6 +275,7 @@ void connectedServer(char *ip, char *port, char **argv){
 				return 0;
 			}
 			else if(strcmp(msg, "AUTHOR\n") == 0){
+				send(server, msg, strlen(msg), 0);
 				msg = "AUTHOR";
 				
 				cse4589_print_and_log("[%s:SUCCESS]\n", msg);
@@ -244,6 +283,7 @@ void connectedServer(char *ip, char *port, char **argv){
 				cse4589_print_and_log("[%s:END]\n", msg);
 			}
 			else if (strcmp(msg, "IP\n") == 0) {
+				send(server, msg, strlen(msg), 0);
 				msg = "IP";
 				cse4589_print_and_log("[%s:SUCCESS]\n", msg);
 				cse4589_print_and_log("IP:%s\n", client_ip);
@@ -251,6 +291,7 @@ void connectedServer(char *ip, char *port, char **argv){
 			
 			}
 			else if (strcmp(msg, "PORT\n") == 0) {
+				send(server, msg, strlen(msg), 0);
 				int port = atoi(listening_port);
 				msg = "PORT";
 				cse4589_print_and_log("[%s:SUCCESS]\n", msg);
