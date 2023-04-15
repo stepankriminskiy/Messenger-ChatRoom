@@ -238,9 +238,9 @@ int start_server(int argc, char **argv)
 							new_client.fdsocket = fdaccept;
 							new_client.loggedIn = 1;
 							new_client.messagesSent = 0;
-							new_client.numBlocked = 0;
+							//new_client.numBlocked = 0;
 							new_client.messagesReceived = 0;
-							new_client.bufferedAmt = 0;
+							//new_client.bufferedAmt = 0;
 		
 							clients[num_clients] = new_client;
 							sort_clients_by_port();
@@ -479,4 +479,3 @@ void sort_clients_by_port() {
         }
     }
 }
-

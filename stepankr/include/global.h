@@ -14,11 +14,11 @@ struct client {
     int messagesSent;
     int messagesReceived;
     int loggedIn;
-    int numBlocked;
+    //int numBlocked;
 
-    int bufferedAmt;
-    char BufferedMessages[100][256];
-    struct blocked blocked_clients[20];
+    //int bufferedAmt;
+    //char BufferedMessages[100][256];
+    //struct blocked blocked_clients[20];
 };
 
 #endif
