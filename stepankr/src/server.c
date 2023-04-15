@@ -48,7 +48,7 @@ void print_statistics();
 void sort_clients_by_port();
 void print_clients();
 void get_ip();
-
+int checkLogIn(char *ip, int port, int socket);
 
 /**
 * main function
@@ -230,17 +230,22 @@ int start_server(int argc, char **argv)
 						/*receiving listening port from newly connected client*/
 						recv(fdaccept, &client_listeningPort, sizeof(client_listeningPort), 0);
 						
-						struct client new_client;
-						strcpy(new_client.ip, client_ip);
-						strcpy(new_client.name, hostname);
-						new_client.port = client_listeningPort;
-						new_client.fdsocket = fdaccept;
-						new_client.loggedIn = 1;
-						new_client.messagesSent = 0;
-						new_client.messagesReceived = 0;
-						clients[num_clients] = new_client;
-						sort_clients_by_port();
+						if(checkLogIn(client_ip, client_listeningPort, fdaccept) == 0){
+							struct client new_client;
+							strcpy(new_client.ip, client_ip);
+							strcpy(new_client.name, hostname);
+							new_client.port = client_listeningPort;
+							new_client.fdsocket = fdaccept;
+							new_client.loggedIn = 1;
+							new_client.messagesSent = 0;
+							new_client.messagesReceived = 0;
+							printf("do we get here?");
+							clients[num_clients] = new_client;
+							sort_clients_by_port();
+						}
 						send(fdaccept, clients, sizeof(clients), 0);
+
+						
   
 
 
@@ -322,6 +327,22 @@ int start_server(int argc, char **argv)
 								FD_CLR(sock_index, &watch_list);
 								close(sock_index);
 							}
+							if(strcmp(buffer, "LOGOUT\n")==0){
+								//set loggedin to 0
+								//the port of the logged out client
+								int client_port;
+								//ip of logged out client
+								char *client_ip2 = (char*) malloc(sizeof(char)*INET_ADDRSTRLEN);
+								memset(client_ip2, '\0', INET_ADDRSTRLEN);
+								inet_ntop(AF_INET, &(client_addr.sin_addr), client_ip2, INET_ADDRSTRLEN);
+								recv(sock_index, &client_port, sizeof(client_port), 0);
+								for (int i = 1; i <= 100; i++) {
+									if(client_port == clients[i].port && strncmp(client_ip2, clients[i].ip, 11)==0){
+										clients[i].loggedIn = 0;
+									}
+							
+								}
+							}
 							if(strncmp(buffer, "BROADCAST", 9) == 0){
 								int client_port;
 								char *client_ip2 = (char*) malloc(sizeof(char)*INET_ADDRSTRLEN);
@@ -360,6 +381,19 @@ int start_server(int argc, char **argv)
 		}
 	}
 	
+	return 0;
+}
+//handles and checks if a client has already connected the server before
+int checkLogIn(char *ip, int port, int socket){
+	for (int i = 1; i <= 100; i++) {
+
+		if(port == clients[i].port && strncmp(ip, clients[i].ip, 11)==0){
+			//set logged In to 1 and return 1 so it doesnt create a new client struct
+			clients[i].fdsocket = socket;
+			clients[i].loggedIn = 1;
+			return 1;
+		}
+	}
 	return 0;
 }
 void print_statistics(){

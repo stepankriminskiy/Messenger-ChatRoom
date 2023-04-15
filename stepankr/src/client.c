@@ -47,7 +47,8 @@ void print_clients2();
 struct client clients[100];
 
 int connect_to_host(char *server_ip, char *server_port);
-
+void startup(char **argv);
+void connectedServer(char *ip, char *port, char **argv);
 /**
 * main function
 *
@@ -67,16 +68,20 @@ int is_valid_port(const char* str) {
 }
 int start_client(int argc, char **argv)
 {
-
+	listening_port = atoi(argv[1]);
 	if(argc != 2) {
 		printf("Usage:%s [port]\n", argv[0]);
 		return -1;
 	}
+	startup(argv);
+
+}
+void startup(char **argv){
 	get_ip_client();
 	char* ip;
     char* port;
 	char* token;
-	listening_port = atoi(argv[1]);
+	
 	while(TRUE){
 		char *msg = (char*) malloc(sizeof(char)*MSG_SIZE);
 		memset(msg, '\0', MSG_SIZE);
@@ -136,6 +141,9 @@ int start_client(int argc, char **argv)
 			}	
 		}
 	}
+	connectedServer(ip, port, argv);
+}
+void connectedServer(char *ip, char *port, char **argv){
 	int server;
 
 	server = connect_to_host(ip, port);
@@ -185,6 +193,13 @@ int start_client(int argc, char **argv)
 				{return -1;}
 
 			send(server, msg, strlen(msg), 0);
+			if(strcmp(msg, "LOGOUT\n") == 0){
+				msg = "LOGOUT";
+				cse4589_print_and_log("[%s:SUCCESS]\n", msg);
+				send(server, &listening_port, sizeof(listening_port), 0);
+				cse4589_print_and_log("[%s:END]\n", msg);
+				startup(argv);
+			}
 			if(strcmp(msg, "REFRESH\n") == 0){
 				msg = "REFRESH";
 				cse4589_print_and_log("[%s:SUCCESS]\n", msg);
@@ -236,7 +251,7 @@ int start_client(int argc, char **argv)
 			
 			}
 			else if (strcmp(msg, "PORT\n") == 0) {
-				int port = atoi(argv[1]);
+				int port = atoi(listening_port);
 				msg = "PORT";
 				cse4589_print_and_log("[%s:SUCCESS]\n", msg);
 				cse4589_print_and_log("PORT:%d\n", port);
@@ -248,6 +263,7 @@ int start_client(int argc, char **argv)
 		fflush(stdout);
 	}
 }
+
 
 int connect_to_host(char *server_ip, char* server_port)
 {
