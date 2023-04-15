@@ -198,6 +198,7 @@ int start_client(int argc, char **argv)
 				send(server, &listening_port, sizeof(listening_port), 0);
 				cse4589_print_and_log("[%s:END]\n", command);
 			}
+
 			else if(strcmp(msg, "LIST\n") == 0){
 				char *command = "LIST";
 				cse4589_print_and_log("[%s:SUCCESS]\n", command);

@@ -250,6 +250,40 @@ int start_server(int argc, char **argv)
 						else {
 							//Process incoming data from existing clients here ...
 							printf("client sent me:%s\n", buffer);
+							if(strncmp(buffer, "SEND", 4)==0){
+								int totalsize = 0;
+								char* token;
+								char client_ip[INET_ADDRSTRLEN];
+								inet_ntop(AF_INET, &(client_addr.sin_addr), client_ip, INET_ADDRSTRLEN);
+								//first token is send
+								token = strtok(buffer, " ");
+								totalsize = totalsize + strlen(token) + 1;
+								//second token is the ip
+								token = strtok(NULL, " ");
+								totalsize = totalsize + strlen(token) + 1;
+								//ip to send to
+								char sending_ip[INET_ADDRSTRLEN];
+								strcpy(sending_ip, token);
+								
+								//port to sent to
+								token = strtok(NULL, " ");
+								totalsize = totalsize + strlen(token) + 1;
+								int client_port = atoi(token);
+								
+								//the message
+								token = buffer + totalsize;
+								
+
+								for (int i = 1; i <= 100; i++) {
+
+									if(client_port == clients[i].port && strcmp(client_ip, clients[i].ip)==0){
+										
+										send(clients[i].fdsocket, token, strlen(token), 0);
+										send(clients[i].fdsocket, client_ip, INET_ADDRSTRLEN, 0);
+										
+									}
+								}
+							}
 							if(strcmp(buffer, "EXIT\n")==0){
 								
 								int client_port;
@@ -265,7 +299,6 @@ int start_server(int argc, char **argv)
 								int client_port;
 								char client_ip[INET_ADDRSTRLEN];
 								inet_ntop(AF_INET, &(client_addr.sin_addr), client_ip, INET_ADDRSTRLEN);
-								printf("THE IP:%s", client_ip);
 								recv(sock_index, &client_port, sizeof(client_port), 0);
 								for (int i = 1; i <= 100; i++) {
 									if(strlen(clients[i].name)> 1 && client_port != clients[i].port){
