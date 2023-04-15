@@ -257,9 +257,12 @@ int start_server(int argc, char **argv)
 							printf("client sent me:%s\n", buffer);
 							if(strncmp(buffer, "SEND", 4)==0){
 								int totalsize = 0;
-								char* token;
-								char client_ip[INET_ADDRSTRLEN];
-								inet_ntop(AF_INET, &(client_addr.sin_addr), client_ip, INET_ADDRSTRLEN);
+								char *token;
+								//ip of sender
+								char *client_ip2 = (char*) malloc(sizeof(char)*INET_ADDRSTRLEN);
+								memset(client_ip2, '\0', INET_ADDRSTRLEN);
+								inet_ntop(AF_INET, &(client_addr.sin_addr), client_ip2, INET_ADDRSTRLEN);
+
 								//first token is send
 								token = strtok(buffer, " ");
 								totalsize = totalsize + strlen(token) + 1;
@@ -270,21 +273,18 @@ int start_server(int argc, char **argv)
 								char sending_ip[INET_ADDRSTRLEN];
 								strcpy(sending_ip, token);
 								
-								//port to sent to
+								//port to send to
 								token = strtok(NULL, " ");
 								totalsize = totalsize + strlen(token) + 1;
 								int client_port = atoi(token);
 								
 								//the message
 								token = buffer + totalsize;
-								
-
+								sprintf(combined, "msg from:%s\n[msg]:%s\n", client_ip2, token);
+								printf(combined);
 								for (int i = 1; i <= 100; i++) {
-
-									if(client_port == clients[i].port && strcmp(client_ip, clients[i].ip)==0){
-										
-										send(clients[i].fdsocket, token, strlen(token), 0);
-										send(clients[i].fdsocket, client_ip, INET_ADDRSTRLEN, 0);
+									if(client_port == clients[i].port && strncmp(sending_ip, clients[i].ip, 11)==0){
+										send(clients[i].fdsocket, combined, strlen(combined), 0);
 										
 									}
 								}
@@ -302,20 +302,18 @@ int start_server(int argc, char **argv)
 							}
 							if(strncmp(buffer, "BROADCAST", 9) == 0){
 								int client_port;
-								char *client_ip = (char*) malloc(sizeof(char)*INET_ADDRSTRLEN);
-								memset(client_ip, '\0', INET_ADDRSTRLEN);
-								inet_ntop(AF_INET, &(client_addr.sin_addr), client_ip, INET_ADDRSTRLEN);
+								char *client_ip2 = (char*) malloc(sizeof(char)*INET_ADDRSTRLEN);
+								memset(client_ip2, '\0', INET_ADDRSTRLEN);
+								inet_ntop(AF_INET, &(client_addr.sin_addr), client_ip2, INET_ADDRSTRLEN);
 								recv(sock_index, &client_port, sizeof(client_port), 0);
-								sprintf(combined, "msg from:%s\n[msg]:%s\n", client_ip, buffer + 10);
+								sprintf(combined, "msg from:%s\n[msg]:%s\n", client_ip2, buffer + 10);
 
 								for (int i = 1; i <= 100; i++) {
 									if(strlen(clients[i].name)> 3 && client_port != clients[i].port){
 										send(clients[i].fdsocket, combined, strlen(combined), 0);
-										
-										
-										
 									}
 								}
+								free(combined);
 							}
 							//send(sock_index, buffer, strlen(buffer), 0) == strlen(buffer)
 							if(strcmp(buffer, "REFRESH\n") == 0){
