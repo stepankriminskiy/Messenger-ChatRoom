@@ -124,7 +124,8 @@ int start_client(int argc, char **argv)
 			
 			
 			if(Validport != 0 && result == 1){
-				printf("ip and port valid");
+				printf("ip and port valid\n");
+				fflush(stdout);
 				break;
 				
 			}
@@ -141,9 +142,9 @@ int start_client(int argc, char **argv)
 	memset(clients, 0, sizeof(clients));
 	send(server, &listening_port, sizeof(listening_port), 0);
 	recv(server, clients, sizeof(clients), 0);
-	
+	fflush(stdout);
 	while(TRUE){
-		printf("\n[PA1-Client@CSE489/589]$ ");
+		//printf("\n[PA1-Client@CSE489/589]$ ");
 		
 		fd_set read_fds;
     	FD_ZERO(&read_fds);
@@ -166,11 +167,8 @@ int start_client(int argc, char **argv)
 			/* Initialize buffer to receieve response */
 			char *buffer = (char*) malloc(sizeof(char)*BUFFER_SIZE);
 			memset(buffer, '\0', BUFFER_SIZE);
-			if(recv(server, buffer, BUFFER_SIZE, 0) >= 0){
-				char *client_ip = (char*) malloc(sizeof(char)*INET_ADDRSTRLEN);
-				recv(server, client_ip, INET_ADDRSTRLEN, 0);
-				printf("msg from:%s\n[msg]:%s\n", client_ip, buffer);
-
+			if(recv(server, buffer, BUFFER_SIZE, 0) >= 0){				
+				cse4589_print_and_log(buffer);
 			}
 		}	
 
@@ -183,7 +181,6 @@ int start_client(int argc, char **argv)
         	if(fgets(msg, MSG_SIZE-1, stdin) == NULL) //Mind the newline character that will be written to msg
 				{return -1;}
 
-        	printf("%s", msg);
 			send(server, msg, strlen(msg), 0);
 			if(strcmp(msg, "REFRESH\n") == 0){
 				msg = "REFRESH";

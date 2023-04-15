@@ -80,6 +80,8 @@ int start_server(int argc, char **argv)
 	struct addrinfo hints, *res;
 	fd_set master_list, watch_list;
 
+
+	memset(clients, 0, sizeof(clients));
 	/* Set up hints structure */
 	memset(&hints, 0, sizeof(hints));
     	hints.ai_family = AF_INET;
@@ -240,6 +242,9 @@ int start_server(int argc, char **argv)
 						char *buffer = (char*) malloc(sizeof(char)*BUFFER_SIZE);
 						memset(buffer, '\0', BUFFER_SIZE);
 						
+						char *combined = (char*) malloc(sizeof(char)*128);
+						memset(combined, '\0', 128);
+						
 						if(recv(sock_index, buffer, BUFFER_SIZE, 0) <= 0){
 							close(sock_index);
 							printf("Remote Host terminated connection!\n");
@@ -297,14 +302,18 @@ int start_server(int argc, char **argv)
 							}
 							if(strncmp(buffer, "BROADCAST", 9) == 0){
 								int client_port;
-								char client_ip[INET_ADDRSTRLEN];
+								char *client_ip = (char*) malloc(sizeof(char)*INET_ADDRSTRLEN);
+								memset(client_ip, '\0', INET_ADDRSTRLEN);
 								inet_ntop(AF_INET, &(client_addr.sin_addr), client_ip, INET_ADDRSTRLEN);
 								recv(sock_index, &client_port, sizeof(client_port), 0);
+								sprintf(combined, "msg from:%s\n[msg]:%s\n", client_ip, buffer + 10);
+
 								for (int i = 1; i <= 100; i++) {
-									if(strlen(clients[i].name)> 1 && client_port != clients[i].port){
-										send(clients[i].fdsocket, buffer + 10, strlen(buffer) - 10, 0);
+									if(strlen(clients[i].name)> 3 && client_port != clients[i].port){
+										send(clients[i].fdsocket, combined, strlen(combined), 0);
 										
-										send(clients[i].fdsocket, client_ip, INET_ADDRSTRLEN, 0);
+										
+										
 									}
 								}
 							}
