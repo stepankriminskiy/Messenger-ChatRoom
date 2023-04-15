@@ -297,9 +297,14 @@ int start_server(int argc, char **argv)
 								sprintf(combined, "msg from:%s\n[msg]:%s\n", client_ip2, token);
 								
 								for (int i = 1; i <= 100; i++) {
+
 									if(client_port == clients[i].port && strncmp(sending_ip, clients[i].ip, 11)==0){
 										send(clients[i].fdsocket, combined, strlen(combined), 0);
+										clients[i].messagesReceived++;
 										
+									}
+									else if(clients[i].name > 2 && clients[i].port == senders_port && strncmp(client_ip2, clients[i].ip, 11)==0){
+										clients[i].messagesSent++;
 									}
 								}
 								cse4589_print_and_log("[%s:SUCCESS]\n", "RELAYED");
@@ -326,9 +331,13 @@ int start_server(int argc, char **argv)
 								sprintf(combined, "msg from:%s\n[msg]:%s\n", client_ip2, buffer + 10);
 
 								for (int i = 1; i <= 100; i++) {
+
 									if(strlen(clients[i].name)> 3 && client_port != clients[i].port){
-										
 										send(clients[i].fdsocket, combined, strlen(combined), 0);
+										clients[i].messagesReceived++;
+									}
+									else if(clients[i].name > 3 && client_port == clients[i].port){
+										clients[i].messagesSent++;
 									}
 								}
 								cse4589_print_and_log("[%s:SUCCESS]\n", "RELAYED");
