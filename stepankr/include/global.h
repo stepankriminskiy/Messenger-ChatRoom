@@ -7,6 +7,7 @@ struct client {
     char name[50];
     char ip[22];
     int port;
+    int fdsocket;
 };
 
 #endif

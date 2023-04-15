@@ -224,6 +224,7 @@ int start_server(int argc, char **argv)
 						strcpy(new_client.ip, client_ip);
 						strcpy(new_client.name, hostname);
 						new_client.port = client_listeningPort;
+						new_client.fdsocket = fdaccept;
             
 						clients[num_clients] = new_client;
 						sort_clients_by_port();
@@ -259,8 +260,20 @@ int start_server(int argc, char **argv)
 								FD_CLR(sock_index, &master_list);
 								FD_CLR(sock_index, &watch_list);
 								close(sock_index);
-							
-								
+							}
+							if(strncmp(buffer, "BROADCAST", 9) == 0){
+								int client_port;
+								char client_ip[INET_ADDRSTRLEN];
+								inet_ntop(AF_INET, &(client_addr.sin_addr), client_ip, INET_ADDRSTRLEN);
+								printf("THE IP:%s", client_ip);
+								recv(sock_index, &client_port, sizeof(client_port), 0);
+								for (int i = 1; i <= 100; i++) {
+									if(strlen(clients[i].name)> 1 && client_port != clients[i].port){
+										send(clients[i].fdsocket, buffer + 10, strlen(buffer) - 10, 0);
+										
+										send(clients[i].fdsocket, client_ip, INET_ADDRSTRLEN, 0);
+									}
+								}
 							}
 							//send(sock_index, buffer, strlen(buffer), 0) == strlen(buffer)
 							if(strcmp(buffer, "REFRESH\n") == 0){

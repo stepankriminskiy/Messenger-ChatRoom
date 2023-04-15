@@ -167,7 +167,10 @@ int start_client(int argc, char **argv)
 			char *buffer = (char*) malloc(sizeof(char)*BUFFER_SIZE);
 			memset(buffer, '\0', BUFFER_SIZE);
 			if(recv(server, buffer, BUFFER_SIZE, 0) >= 0){
-				printf("Server responded: %s", buffer);
+				char *client_ip = (char*) malloc(sizeof(char)*INET_ADDRSTRLEN);
+				recv(server, client_ip, INET_ADDRSTRLEN, 0);
+				printf("msg from:%s\n[msg]:%s\n", client_ip, buffer);
+
 			}
 		}	
 
@@ -188,8 +191,12 @@ int start_client(int argc, char **argv)
 				memset(clients, 0, sizeof(clients));
 				recv(server, clients, sizeof(clients), 0);
 				cse4589_print_and_log("[%s:END]\n", msg);
-				
-				
+			}
+			else if(strncmp(msg, "BROADCAST", 9) == 0){
+				char *command = "BROADCAST";
+				cse4589_print_and_log("[%s:SUCCESS]\n", command);
+				send(server, &listening_port, sizeof(listening_port), 0);
+				cse4589_print_and_log("[%s:END]\n", command);
 			}
 			else if(strcmp(msg, "LIST\n") == 0){
 				char *command = "LIST";
