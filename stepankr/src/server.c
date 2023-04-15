@@ -295,13 +295,16 @@ int start_server(int argc, char **argv)
 								//the message
 								token = buffer + totalsize;
 								sprintf(combined, "msg from:%s\n[msg]:%s\n", client_ip2, token);
-								printf(combined);
+								
 								for (int i = 1; i <= 100; i++) {
 									if(client_port == clients[i].port && strncmp(sending_ip, clients[i].ip, 11)==0){
 										send(clients[i].fdsocket, combined, strlen(combined), 0);
 										
 									}
 								}
+								cse4589_print_and_log("[%s:SUCCESS]\n", "RELAYED");
+								cse4589_print_and_log("msg from:%s, to:%s\n[msg]:%s\n", client_ip2, sending_ip , token);
+								cse4589_print_and_log("[%s:END]\n", "RELAYED");
 							}
 							if(strcmp(buffer, "EXIT\n")==0){
 								
@@ -324,9 +327,13 @@ int start_server(int argc, char **argv)
 
 								for (int i = 1; i <= 100; i++) {
 									if(strlen(clients[i].name)> 3 && client_port != clients[i].port){
+										
 										send(clients[i].fdsocket, combined, strlen(combined), 0);
 									}
 								}
+								cse4589_print_and_log("[%s:SUCCESS]\n", "RELAYED");
+								cse4589_print_and_log("msg from:%s, to:%s\n[msg]:%s\n", client_ip2 , "255.255.255.255" , buffer + 10);
+								cse4589_print_and_log("[%s:END]\n", "RELAYED");
 								free(combined);
 							}
 							//send(sock_index, buffer, strlen(buffer), 0) == strlen(buffer)

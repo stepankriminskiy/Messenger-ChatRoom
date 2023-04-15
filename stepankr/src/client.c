@@ -168,7 +168,10 @@ int start_client(int argc, char **argv)
 			char *buffer = (char*) malloc(sizeof(char)*BUFFER_SIZE);
 			memset(buffer, '\0', BUFFER_SIZE);
 			if(recv(server, buffer, BUFFER_SIZE, 0) >= 0){				
+				cse4589_print_and_log("[%s:SUCCESS]\n", "RECEIVED");
 				cse4589_print_and_log(buffer);
+				cse4589_print_and_log("[%s:END]\n", "RECEIVED");
+				
 			}
 		}	
 
