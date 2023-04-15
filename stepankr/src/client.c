@@ -198,7 +198,7 @@ int start_client(int argc, char **argv)
 			else if(strncmp(msg, "SEND", 4) == 0){
 				char *command = "SEND";
 				cse4589_print_and_log("[%s:SUCCESS]\n", command);
-				//send(server, &listening_port, sizeof(listening_port), 0);
+				send(server, &listening_port, sizeof(listening_port), 0);
 				cse4589_print_and_log("[%s:END]\n", command);
 			}
 

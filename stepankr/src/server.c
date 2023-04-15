@@ -44,6 +44,7 @@ char server_ip[16];
 char *ip;
 struct client clients[100];
 int num_clients = 0;
+void print_statistics();
 void sort_clients_by_port();
 void print_clients();
 void get_ip();
@@ -179,6 +180,13 @@ int start_server(int argc, char **argv)
 							print_clients();
 							cse4589_print_and_log("[%s:END]\n", command);
 						}
+						if(strcmp(cmd, "STATISTICS\n") == 0){
+							char *command = "STATISTICS";
+							sort_clients_by_port();
+							cse4589_print_and_log("[%s:SUCCESS]\n", command);
+							print_statistics();
+							cse4589_print_and_log("[%s:END]\n", command);
+						}
 
 						
 						
@@ -227,7 +235,9 @@ int start_server(int argc, char **argv)
 						strcpy(new_client.name, hostname);
 						new_client.port = client_listeningPort;
 						new_client.fdsocket = fdaccept;
-            
+						new_client.loggedIn = 1;
+						new_client.messagesSent = 0;
+						new_client.messagesReceived = 0;
 						clients[num_clients] = new_client;
 						sort_clients_by_port();
 						send(fdaccept, clients, sizeof(clients), 0);
@@ -258,6 +268,10 @@ int start_server(int argc, char **argv)
 							if(strncmp(buffer, "SEND", 4)==0){
 								int totalsize = 0;
 								char *token;
+
+								int senders_port;
+								recv(sock_index, &senders_port, sizeof(senders_port), 0);
+
 								//ip of sender
 								char *client_ip2 = (char*) malloc(sizeof(char)*INET_ADDRSTRLEN);
 								memset(client_ip2, '\0', INET_ADDRSTRLEN);
@@ -332,11 +346,33 @@ int start_server(int argc, char **argv)
 	
 	return 0;
 }
+void print_statistics(){
+	sort_clients_by_port();
+    int list_id = 1;
+	char* status;
+	char loggedIn[] = "logged-in";
+	char loggedOut[] = "logged-out";
+
+
+    for (int i = 1; i <= 100; i++) {
+        if (strlen(clients[i].name) > 2) {
+			if(clients[i].loggedIn == 1) {
+    			status = loggedIn;
+			}
+			else {
+    			status = loggedOut;
+			}
+            cse4589_print_and_log("%-5d%-35s%-8d%-8d%-8s\n", list_id, clients[i].name, clients[i].messagesSent, clients[i].messagesReceived, status);
+            list_id++;
+        }
+    }
+}
+
 void print_clients() {
 	sort_clients_by_port();
     int list_id = 1;
     for (int i = 1; i <= 100; i++) {
-        if (strlen(clients[i].name) > 0) {
+        if (strlen(clients[i].name) > 3) {
             cse4589_print_and_log("%-5d%-35s%-20s%-8d\n", list_id, clients[i].name, clients[i].ip, clients[i].port);
             list_id++;
         }

@@ -8,6 +8,9 @@ struct client {
     char ip[22];
     int port;
     int fdsocket;
+    int messagesSent;
+    int messagesReceived;
+    int loggedIn;
 };
 
 #endif
