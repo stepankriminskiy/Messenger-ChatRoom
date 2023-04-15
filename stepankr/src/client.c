@@ -28,6 +28,7 @@
 #include <arpa/inet.h>
 #include <sys/types.h>
 #include <netdb.h>
+#include <unistd.h>
 #include "../include/client.h"
 #include "../include/global.h"
 #include <ctype.h>
@@ -143,20 +144,44 @@ int start_client(int argc, char **argv)
 	
 	while(TRUE){
 		printf("\n[PA1-Client@CSE489/589]$ ");
-		fflush(stdout);
 		
-		char *msg = (char*) malloc(sizeof(char)*MSG_SIZE);
-		memset(msg, '\0', MSG_SIZE);
-		if(fgets(msg, MSG_SIZE-1, stdin) == NULL) //Mind the newline character that will be written to msg
-			return -1;
+		fd_set read_fds;
+    	FD_ZERO(&read_fds);
+
+    	// Add server socket and stdin (file descriptor 0) to the set
+    	FD_SET(server, &read_fds);
+    	FD_SET(0, &read_fds);
+
+    	int max_fd = (server > 0 ? server : 0) + 1;
+
+    	int activity = select(max_fd, &read_fds, NULL, NULL, NULL);
+
+    	if (activity < 0) {
+        	perror("select error");
+        	break;
+    	}
 		
-		
-		
-		printf("I got: %s(size:%d chars)", msg, strlen(msg));
-		
-		printf("\nSENDing it to the remote server ... ");
-		if(send(server, msg, strlen(msg), 0) == strlen(msg))
-			printf("Done!\n");
+		//*if activity is from server
+		if (FD_ISSET(server, &read_fds)){
+			/* Initialize buffer to receieve response */
+			char *buffer = (char*) malloc(sizeof(char)*BUFFER_SIZE);
+			memset(buffer, '\0', BUFFER_SIZE);
+			if(recv(server, buffer, BUFFER_SIZE, 0) >= 0){
+				printf("Server responded: %s", buffer);
+			}
+		}	
+
+
+		//handle user activity
+		if (FD_ISSET(0, &read_fds)) {
+        
+        	char *msg = (char*) malloc(sizeof(char)*MSG_SIZE);
+			memset(msg, '\0', MSG_SIZE);
+        	if(fgets(msg, MSG_SIZE-1, stdin) == NULL) //Mind the newline character that will be written to msg
+				{return -1;}
+
+        	printf("%s", msg);
+			send(server, msg, strlen(msg), 0);
 			if(strcmp(msg, "REFRESH\n") == 0){
 				msg = "REFRESH";
 				cse4589_print_and_log("[%s:SUCCESS]\n", msg);
@@ -204,17 +229,8 @@ int start_client(int argc, char **argv)
 				cse4589_print_and_log("[%s:END]\n", msg);
 			}
 			
-			/* Initialize buffer to receieve response */
-			char *buffer = (char*) malloc(sizeof(char)*BUFFER_SIZE);
-			memset(buffer, '\0', BUFFER_SIZE);
-			if(recv(server, buffer, BUFFER_SIZE, 0) >= 0){
-			//printf("Server responded: %s", buffer);
-			fflush(stdout);
-			}
-			
-			
-		
 
+		}
 	}
 }
 

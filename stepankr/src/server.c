@@ -248,6 +248,7 @@ int start_server(int argc, char **argv)
 						}
 						else {
 							//Process incoming data from existing clients here ...
+							printf("client sent me:%s\n", buffer);
 							if(strcmp(buffer, "EXIT\n")==0){
 								
 								int client_port;
@@ -261,19 +262,12 @@ int start_server(int argc, char **argv)
 							
 								
 							}
+							//send(sock_index, buffer, strlen(buffer), 0) == strlen(buffer)
 							if(strcmp(buffer, "REFRESH\n") == 0){
-							sort_clients_by_port();
-							send(sock_index, clients, sizeof(clients), 0);
+								sort_clients_by_port();
+								send(sock_index, clients, sizeof(clients), 0);
 							}
-							if(strcmp(buffer, "EXIT\n")!= 0){
-							printf("\nClient sent me: %s\n", buffer);
-							printf("ECHOing it back to the remote host ... ");
-							if(send(sock_index, buffer, strlen(buffer), 0) == strlen(buffer))
-								printf("Done!\n");
-								
-									
-							fflush(stdout);
-							}
+
 						}
 						
 						free(buffer);
